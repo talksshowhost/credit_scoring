@@ -1,7 +1,7 @@
 import pytest
 import requests
 
-URL = 'http://127.0.0.1:5000'
+URL = 'http://127.0.0.1:5555'
 
 @pytest.fixture(scope='function')
 def resource_setup(request):
