@@ -1,0 +1,8 @@
+{"timestamp":"2025-10-01T19:43:45.735838","level":"info","event":"DAG bundles loaded: dags-folder","logger":"airflow.dag_processing.bundles.manager.DagBundlesManager"}
+{"timestamp":"2025-10-01T19:43:45.746302","level":"info","event":"Filling up the DagBag from /opt/airflow/dags/cleaning_data.py","logger":"airflow.models.dagbag.DagBag"}
+{"timestamp":"2025-10-01T19:43:48.711351","level":"warning","event":"Using Connection.get_connection_from_secrets from `airflow.models` is deprecated.Please use `get` on Connection from sdk(`airflow.sdk.Connection`) instead","category":"DeprecationWarning","filename":"/home/airflow/.local/lib/python3.12/site-packages/airflow/models/connection.py","lineno":471,"logger":"py.warnings"}
+{"timestamp":"2025-10-01T19:43:48.724134","level":"info","event":"Connection Retrieved 's3_connection'","logger":"airflow.hooks.base"}
+{"timestamp":"2025-10-01T19:43:48.724340","level":"info","event":"AWS Connection (conn_id='s3_connection', conn_type='aws') credentials retrieved from login and password.","logger":"airflow.providers.amazon.aws.utils.connection_wrapper.AwsConnectionWrapper"}
+{"timestamp":"2025-10-01T19:43:49.968635","level":"error","event":"Access to bucket \"raw-data\" is forbidden or there was an error with the request","logger":"airflow.task.hooks.airflow.providers.amazon.aws.hooks.s3.S3Hook"}
+{"timestamp":"2025-10-01T19:43:49.968816","level":"error","event":"An error occurred (403) when calling the HeadBucket operation: Forbidden","logger":"airflow.task.hooks.airflow.providers.amazon.aws.hooks.s3.S3Hook"}
+{"timestamp":"2025-10-01T19:43:49.970607","level":"info","event":"Done. Returned value was: None","logger":"airflow.task.operators.airflow.providers.standard.decorators.python._PythonDecoratedOperator"}
