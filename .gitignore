@@ -3,3 +3,4 @@
 *.pytest_cache
 *logs
 *config
+*jupyter-data
