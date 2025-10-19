@@ -49,7 +49,7 @@ services:
     ports:
       - "5423:5432"
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "admin"]
+      test: ["CMD", "pg_isready", "-U", "clean_data"]
       interval: 10s
       retries: 5
       start_period: 5s
@@ -71,6 +71,7 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+     
 
   airflow-scheduler:
     <<: *airflow-common
