@@ -49,7 +49,7 @@ services:
     ports:
       - "5423:5432"
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "admin"]
+      test: ["CMD", "pg_isready", "-U", "clean_data"]
       interval: 10s
       retries: 5
       start_period: 5s
@@ -223,6 +223,7 @@ services:
     volumes:
       - ./jupyter-data:/home/jovyan/
       - ./dags:/home/jovyan/dags
+      - ./:/home/jovyan/project
     environment:
       MLFLOW_TRACKING_URI: http://mlflow-service:5000
       AWS_ENDPOINT_URL: http://s3:9000
