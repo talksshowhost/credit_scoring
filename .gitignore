@@ -1,6 +1,6 @@
 *.DS_Store
-*__pycache__
-*.pytest_cache
-*logs
-*config
-*jupyter-data
+__pycache__/
+.pytest_cache/
+logs/
+jupyter-data/
+.ipynb_checkpoints/

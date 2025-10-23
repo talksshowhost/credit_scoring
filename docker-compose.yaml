@@ -11,6 +11,10 @@ x-airflow-common:
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
+    MLFLOW_S3_ENDPOINT_URL: http://s3:9000
+    AWS_ACCESS_KEY_ID: qwerTY12345
+    AWS_SECRET_ACCESS_KEY: poIuytRewq0987654321qwerty
+    AWS_DEFAULT_REGION: ru-central1
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
@@ -37,6 +41,8 @@ services:
       retries: 5
       start_period: 5s
     restart: always
+    networks:
+      - backend
 
   postgres_clean:
     image: postgres:13
@@ -54,6 +60,8 @@ services:
       retries: 5
       start_period: 5s
     restart: always
+    networks:
+      - backend
 
   airflow-webserver:
     <<: *airflow-common
@@ -71,6 +79,8 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+    networks:
+      - backend 
 
   airflow-scheduler:
     <<: *airflow-common
@@ -86,6 +96,8 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+    networks:
+      - backend 
 
 
   airflow-init:
@@ -151,6 +163,8 @@ services:
     user: "0:0"
     volumes:
       - ${AIRFLOW_PROJ_DIR:-.}:/sources
+    networks:
+      - backend 
 
   s3:
       restart: always
@@ -170,7 +184,10 @@ services:
         interval: 30s
         timeout: 20s
         retries: 3
-  
+      networks:
+        - frontend
+        - backend 
+
   s3_setup:
     image: minio/mc:RELEASE.2025-07-21T05-28-08Z
     container_name: s3_setup
@@ -191,6 +208,8 @@ services:
           myminio admin
         mc mb myminio/mlflow-bucket/artifacts
         mc mb myminio/raw-data
+    networks:
+      - backend
 
   mlflow-service:
     image: ghcr.io/mlflow/mlflow:v2.15.1
@@ -212,6 +231,9 @@ services:
       - "5050:5000"
     volumes:
       - mlflow-data:/mlflow
+    networks:
+      - frontend
+      - backend
 
   jupyter:
     image: jupyter/datascience-notebook:notebook-6.5.4
@@ -251,6 +273,29 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - backend
+
+  data-server:
+    restart: always
+    build: ./data_server
+    container_name: data_server
+    ports:
+      - "4444:4444"
+    command: python ./application.py
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4444/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - backend
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
 
 volumes:
   postgres-db-volume:

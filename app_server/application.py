@@ -2,18 +2,24 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import pandas as pd
 import pickle
+import mlflow.lightgbm
 
-with open('model.pkl', 'rb') as file:
-    model = pickle.load(file)
+model_uri = 'runs:/f6b876de53694c468c9f00b04ab79c7d/Model_With_Better_Score'
+
+mlflow.set_tracking_uri('http://mlflow-service:5000')
+model = mlflow.lightgbm.load_model(model_uri)
+
+# with open('prediction_model.pkl', 'rb') as file:
+#     model = pickle.load(file)
     
 class PredictionInput(BaseModel):
     RevolvingUtilizationOfUnsecuredLines: float
     age: int
     DebtRatio: float
     MonthlyIncome: float
-    NumberOfDependents: float
-    HasPastDue: int
-    HasCreditLoanOrLine: int
+    NumberOfDependents: int
+    HasAlotLoans: bool
+    HasLatePayments: bool
 
 app = FastAPI()
 
@@ -29,11 +35,11 @@ def predict(input_data: PredictionInput):
         'DebtRatio': [input_data.DebtRatio],
         'MonthlyIncome': [input_data.MonthlyIncome],
         'NumberOfDependents': [input_data.NumberOfDependents],
-        'HasPastDue': [input_data.HasPastDue],
-        'HasCreditLoanOrLine': [input_data.HasCreditLoanOrLine]
+        'HasAlotLoans': [input_data.HasAlotLoans],
+        'HasLatePayments': [input_data.HasLatePayments]
     })
     
-    prediction = 'Reject' if model.predict(data) == 1 else 'Accept'
+    prediction = 'Reject' if model.predict(data) == 0 else 'Accept'
     
     return f'{prediction} client\'s request'
 
