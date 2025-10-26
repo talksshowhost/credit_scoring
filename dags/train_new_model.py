@@ -1,9 +1,9 @@
 import logging
-from datetime import datetime
+from datetime import datetime, date
 
 from airflow import DAG
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.operators.python import PythonOperator
+from airflow.operators.python import PythonOperator, ShortCircuitOperator
 from airflow.models import Variable
 
 logging.basicConfig(filename='train_new_model.log', level=logging.INFO)
@@ -25,8 +25,9 @@ def train_model():
     
     import io
     
-    TABLE = Variable.get('postgres_clean_table')
-    SCORE = float(Variable.get('last_best_score'))
+    TODAY = date.today().strftime('%d-%m-%Y')
+    TABLE = Variable.get(key='postgres_clean_table', default_var='clean_table')
+    SCORE = float(Variable.get(key='last_best_score', default_var='0'))
     hook = PostgresHook('postgres_connection')
     
     with hook.get_conn() as connection:
@@ -71,7 +72,8 @@ def train_model():
                 max_depth=max_depth,
                 num_leaves=num_leaves,
                 class_weight='balanced',
-                verbosity=-1
+                verbosity=-1,
+                random_state=42
             )
         
             preds = cross_val_predict(model, X, y, cv=5)
@@ -90,22 +92,53 @@ def train_model():
             
             return f1
         
-    with mlflow.start_run(run_name='LGBM Classifier'):
+    with mlflow.start_run(run_name=f'LGBM Classifier_{TODAY}') as run:
+        run_id = run.info.run_id
         study = optuna.create_study(direction='maximize')
         study.optimize(model_objective, n_trials=10)
         mlflow.log_metric('f1', study.best_value)
         mlflow.log_params(study.best_params)
         
         if study.best_value > SCORE:
-            _LOG.info('Модель улучшила предыдущий результат')
+            _LOG.info(f'Модель улучшила предыдущий результат, f1 = {study.best_value}')
+            
+            client = mlflow.tracking.MlflowClient()
+            model_name = 'CreditScoringModel'
+            
             model = LGBMClassifier(**study.best_params)
             model.fit(X, y)
-            mlflow.lightgbm.log_model(model, 'Model_With_Better_Score')
+            mlflow.lightgbm.log_model(model, model_name)
+            
+            result = mlflow.register_model(
+                model_uri=f'runs:/{run_id}/{model_name}',
+                name=model_name)
+            
             _LOG.info('Новая модель сохранена')
+            
+            client.transition_model_version_stage(
+                name=model_name,
+                version=result.version,
+                stage='Production',
+                archive_existing_versions=True
+            )
+            
             Variable.set('last_best_score', f'{study.best_value}')
             _LOG.info('Новый результат сохранен')
+            
+        else:
+            _LOG.info('Предыдущий результат не превзойден')
         
         mlflow.set_tag('Optimizer', 'Optuna')
+        
+        return study.best_value > SCORE
+        
+
+def reload_model():
+    import requests
+    response = requests.post("http://application:5555/reload")
+    if response.status_code != 200:
+        _LOG.error(f"Не удалось обновить модель, статус: {response.status_code}")
+    _LOG.info('Модель в API обновлена')
         
 with DAG(
     dag_id=DAG_ID,
@@ -118,5 +151,10 @@ with DAG(
     catchup=False
 ) as dag:
     
-    train_model_task = PythonOperator(task_id='train_model_task', 
+    train_model_task = ShortCircuitOperator(task_id='train_model_task', 
                                     python_callable=train_model)
+    
+    reload_model_task = PythonOperator(task_id="reload_model_task",
+                                 python_callable=reload_model)
+    
+    train_model_task >> reload_model_task

@@ -273,6 +273,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    volumes:
+      - mlflow-data:/mlflow
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow-service:5000
+      AWS_ENDPOINT_URL: http://s3:9000
+      AWS_ACCESS_KEY_ID: qwerTY12345
+      AWS_SECRET_ACCESS_KEY: poIuytRewq0987654321qwerty
+      AWS_DEFAULT_REGION: ru-central1
     networks:
       - backend
 

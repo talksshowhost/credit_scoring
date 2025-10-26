@@ -11,13 +11,37 @@
 ### 1. Клонирование репозитория и переход в корневую папку проекта
 ```bash
 git clone https://github.com/talksshowhost/credit_scoring
-cd credit-scoring
+cd credit_scoring
 ```
-### 2. Сборка Docker-образов
+### 2. Создание окружения .env для проекта
+Создать файл .env, в котором указано:
+
+   MLFLOW_PG_USER=*Имя пользователя для БД MlFlow*
+   MLFLOW_PG_PASSWORD=*Пароль для БД MlFlow*
+   MLFLOW_PG_DATABASE=*Имя БД для MlFlow*
+
+   DATA_PG_USER=*Имя пользователя для БД с обработанными данными*
+   DATA_PG_PASSWORD=*Пароль для БД с обработанными данными*
+   DATA_PG_DATABASE=*Имя БД с обработанными данными*
+
+   MLFLOW_BUCKET_NAME=*Название бакета для MlFlow*
+
+   MINIO_ROOT_USER=*Логин для входа в S3/MiniO*
+   MINIO_ROOT_PASSWORD=*Пароль для входа в S3/MiniO*
+
+   MLFLOW_S3_ENDPOINT_URL=http://localhost:9000
+   MLFLOW_TRACKING_URL=http://localhost:5000
+
+   AWS_ACCESS_KEY_ID=*KeyID для S3/MiniO*
+   AWS_SECRET_ACCESS_KEY=*Secret Access Key для S3/MiniO*
+
+   AIRFLOW_UID=50000
+
+### 3. Сборка Docker-образов
 ```bash
 docker-compose build
 ```
-### 3. Запуск всех сервисов
+### 4. Запуск всех сервисов
 ```bash
 docker-compose up -d
 ```

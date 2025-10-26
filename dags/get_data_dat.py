@@ -4,8 +4,7 @@ from airflow import DAG
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.operators.python import PythonOperator
 from airflow.models import Variable
-from datetime import datetime
-from datetime import date
+from datetime import datetime, date
 
 import requests
 import io
@@ -26,7 +25,7 @@ default_args = {
 }
 
 def get_file():
-    URL = Variable.get('get_data_url')
+    URL = Variable.get(key='get_data_url', default_var='http://data-server:4444')
     
     response = requests.get(URL + '/data')
     response.raise_for_status()
@@ -34,7 +33,7 @@ def get_file():
     
     _LOG.info('Файл скачен')
     
-    BUCKET = Variable.get('raw_data_bucket')
+    BUCKET = Variable.get(key='raw_data_bucket', default_var='raw-data')
     
     hook = S3Hook('s3_connection')
     hook.load_file_obj(file_obj=filebuffer, key=f'{YEAR}/{MONTH}/{TODAY}.csv', bucket_name=BUCKET, replace=True)

@@ -1,8 +1,7 @@
 import logging
 import pathlib
 
-from datetime import datetime
-from datetime import date
+from datetime import datetime, date
 from airflow import DAG
 from airflow.models import Variable
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
@@ -45,13 +44,13 @@ def preparation(dataframe) -> None:
     dataframe['HasLatePayments'] = dataframe['NumbersOfLate'].map(lambda x: 1 if x > 0 else 0)
     dataframe.drop(columns=['NumbersOfLate','NumberOfTime30-59DaysPastDueNotWorse', 'NumberOfTime60-89DaysPastDueNotWorse', 'NumberOfTimes90DaysLate'], inplace=True)
     
-def download_data() -> None:
+def download_data():
     today = date.today()
     TODAY = date.strftime(today, '%d-%m-%Y')
     YEAR = date.strftime(today, '%Y')
     MONTH = date.strftime(today, '%m')
     
-    BUCKET = Variable.get('raw_data_bucket')
+    BUCKET = Variable.get(key='raw_data_bucket', default_var='raw-data')
     
     hook = S3Hook('s3_connection')
     file_path = hook.download_file(key=f'{YEAR}/{MONTH}/{TODAY}.csv', bucket_name=BUCKET)
@@ -64,7 +63,7 @@ def transform_and_load_data(**kwargs):
     import io
     import pandas as pd
     
-    TABLE = Variable.get('postgres_clean_table')
+    TABLE = Variable.get(key='postgres_clean_table', default_var='clean_table')
     
     ti = kwargs['ti']
     file_path = ti.xcom_pull(task_ids='task_download_data')
