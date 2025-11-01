@@ -1,16 +1,13 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 import pandas as pd
-import pickle
-import mlflow.lightgbm
+import mlflow
 
-model_uri = 'runs:/f6b876de53694c468c9f00b04ab79c7d/Model_With_Better_Score'
+model = None
 
-mlflow.set_tracking_uri('http://mlflow-service:5000')
-model = mlflow.lightgbm.load_model(model_uri)
-
-# with open('prediction_model.pkl', 'rb') as file:
-#     model = pickle.load(file)
+def reload_model():
+    global model
+    model = mlflow.pyfunc.load_model('models:/CreditScoringModel/Production')
     
 class PredictionInput(BaseModel):
     RevolvingUtilizationOfUnsecuredLines: float
@@ -27,6 +24,12 @@ app = FastAPI()
 def health():
     return {'status': 'OK'}
 
+@app.post('/reload')
+def reload():
+    reload_model()
+    print('Модель успешно обновлена')
+    return {'status': 'Модель обновилась до последней версии'}
+
 @app.post('/predict')
 def predict(input_data: PredictionInput):
     data = pd.DataFrame({
@@ -39,9 +42,14 @@ def predict(input_data: PredictionInput):
         'HasLatePayments': [input_data.HasLatePayments]
     })
     
-    prediction = 'Reject' if model.predict(data) == 0 else 'Accept'
+    if model != None:
+        prediction = model.predict(data)[0]
+        decision = 'Принять' if prediction == 0 else 'Отклонить'
+        
+        return f'{decision} запрос клиента'
     
-    return f'{prediction} client\'s request'
+    else:
+        return 'На сервере не обновлена модель'
 
 if __name__ == '__main__':
     import uvicorn

@@ -4,3 +4,5 @@ __pycache__/
 logs/
 jupyter-data/
 .ipynb_checkpoints/
+.env
+mlruns/
